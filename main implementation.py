@@ -58,6 +58,7 @@ class activFunct:
   def __init__(self,eq,inveq,derivativeeq,bounds):
     self.eq=eq
     self.inveq=inveq
+    self.derivativeeq=derivativeeq
     self.bounds=bounds
   def toData(self):
     return {
@@ -73,7 +74,7 @@ def inversesigmoid(a):
   return -math.log2(1/a-1)
 
 def sigmoidderivative(a):
-  return (-LN2*math.pow(-a))/(1+math.exp(2,1-a)+math.pow(2,-2*a))
+  return (-LN2*math.pow(2,-a))/(1+math.pow(2,1-a)+math.pow(2,-2*a))
 
 def tangentderivative(a):
   return 1/(1+a*a)
@@ -113,8 +114,8 @@ class Network:
     weights = []
     i=1
     while i<len(self.activations):
-      biases.append([[self.filleq_b() for _ in range(self.activations[i-1])] for _ in range(self.activations[i])])
-      weights.append([self.filleq_w() for _ in range(self.activations[i])])
+      biases.append([self.filleq_w() for _ in range(self.activations[i])])
+      weights.append([[self.filleq_b() for _ in range(self.activations[i-1])] for _ in range(self.activations[i])])
       i+=1
     self.b = biases
     self.w = weights
@@ -132,8 +133,8 @@ class Network:
     activation=input_information
     for biases, weights in zip(self.b, self.w):
       new_activation=[]
-      for biasgroup,weight in zip(biases,weights):
-        new_activation.append(self.activation_funct.eq(weight+sum([act*bias for act,bias in zip(biasgroup,activation)])))
+      for weightgroup,bias in zip(weights,biases):
+        new_activation.append(self.activation_funct.eq(bias+sum([act*weight for weight,act in zip(weightgroup,activation)])))
       activation=new_activation
     return activation
 
@@ -154,42 +155,34 @@ class basicTrainer:
       summer+=self.getFitness(idx)
     summer/=len(self.data)
     return summer
-  def getDerivativeForCoordinate_BIAS(self,idx,layer_coordinate,lindex,layer_in_coordinate):
-    activation=self.getTrainingData(idx)
-    for biases, weights in zip(self.net.b, self.net.w):
-      new_activation=[]
-      for biasgroup, weight in zip(biases,weights):
-        activSum = weight
-        i=0
-        while i<len(biasgroup):
-          activSum+=biasgroup[i]*activation[i]
-          i+=1
-        activ = self.net.activation_funct.eq(activSum)
-        new_activation.append(activ)
-      activation=new_activation
-    return activation
   def getDerivativeForCoordinate_BIAS(self,idx,layer_coordinate,lindex,lindex_in_coordinate):
-    activation=[self.getTrainingData(idx)]
+    todaysTrainingData=self.getTrainingData(idx)
+    activation=[todaysTrainingData]
     activation_derivatives=[[0 for _ in self.getTrainingData(idx)]]
-    layer=0
+    layer=-1
     for biases, weights in zip(self.net.b, self.net.w):
       new_activation=[]
       new_activation_derivatives=[]
-      layerindex = 0
-      for biasgroup, weight in zip(biases,weights):
-        activSum = weight
+      layerindex =0
+      for bias, weightgroup in zip(biases,weights):
+        activSum = bias
+        activDerivSum = 0
         i=0
-        while i<len(biasgroup):
-          activSum+=biasgroup[i]*activation[-1][i]
+        while i<len(weightgroup):
+          isWantedCoordinate=layer==layer_coordinate and lindex==layerindex and i==lindex_in_coordinate
+          activDerivSum+=weightgroup[i]*(activation_derivatives[-1][i]+isWantedCoordinate)
+          activSum+=weightgroup[i]*activation[-1][i]
           i+=1
         activ = self.net.activation_funct.eq(activSum)
         new_activation.append(activ)
-        dactiv = self.net.activation_funct.derivativeeq(activSum)
+        dactiv = self.net.activation_funct.derivativeeq(activSum)*activDerivSum
+        new_activation_derivatives.append(dactiv)
         layerindex+=1
       activation+=[new_activation]
       activation_derivatives+=[new_activation_derivatives]
       layer+=1
-    return activation
+    ending_derivatives=activation_derivatives[-1]
+    return ending_derivatives
     
 
 coolNet = Network(3,[3,5,4],2,randominit,randominit)
