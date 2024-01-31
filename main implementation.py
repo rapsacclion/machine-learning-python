@@ -9,6 +9,12 @@ training_data={
     (0,0,1):[0,1]
 }
 
+for i in range(100):
+  for t in range(100):
+    ins=(i/100,random.random(),t/100)
+    outs=[i/100,t/100]
+    training_data[ins]=outs
+
 def rec_gen(s,eq,pos=[],nv=None):
   pc=pos[:]
   if nv!=None:
@@ -74,13 +80,13 @@ def inversesigmoid(a):
   return -math.log2(1/a-1)
 
 def sigmoidderivative(a):
-  return (-LN2*math.pow(2,-a))/(1+math.pow(2,1-a)+math.pow(2,-2*a))
+  return (-LN2*math.pow(2,-a))/(1+math.pow(2,1-a)+math.pow(2,-a)**2) #throws a math range error in the last pow function sometimes? idk why
 
 def tangentderivative(a):
   return 1/(1+a*a)
 
 sigmoidFunct=activFunct(sigmoid,inversesigmoid,sigmoidderivative,[0,1])
-tanFunct=activFunct(math.tan,math.atan,tangentderivative,[-math.pi/2,math.pi/2])
+tanFunct=activFunct(math.atan,math.tan,tangentderivative,[-math.pi/2,math.pi/2])
 
 #
 #
@@ -155,7 +161,7 @@ class basicTrainer:
       summer+=self.getFitness(idx)
     summer/=len(self.data)
     return summer
-  def getDerivativeForCoordinate_BIAS(self,idx,layer_coordinate,lindex,lindex_in_coordinate):
+  def getDerivativeForCoordinate_WEIGHT(self,idx,layer_coordinate,lindex,lindex_in_coordinate):
     todaysTrainingData=self.getTrainingData(idx)
     activation=[todaysTrainingData]
     activation_derivatives=[[0 for _ in self.getTrainingData(idx)]]
@@ -182,14 +188,59 @@ class basicTrainer:
       activation_derivatives+=[new_activation_derivatives]
       layer+=1
     ending_derivatives=activation_derivatives[-1]
-    return ending_derivatives
+    ending_values=activation[-1]
+    return sum([2*(e_val-expected)*e_deriv for e_val,e_deriv,expected in zip(ending_values, ending_derivatives, self.data[todaysTrainingData])])
+  def getDerivativeForCoordinate_BIAS(self,idx,layer_coordinate,lindex):
+    todaysTrainingData=self.getTrainingData(idx)
+    activation=[todaysTrainingData]
+    activation_derivatives=[[0 for _ in self.getTrainingData(idx)]]
+    layer=-1
+    for biases, weights in zip(self.net.b, self.net.w):
+      new_activation=[]
+      new_activation_derivatives=[]
+      layerindex=0
+      for bias, weightgroup in zip(biases,weights):
+        activSum = bias
+        activDerivSum = layer==layer_coordinate and lindex==layerindex
+        i=0
+        while i<len(weightgroup):
+          activDerivSum+=weightgroup[i]*(activation_derivatives[-1][i])
+          activSum+=weightgroup[i]*activation[-1][i]
+          i+=1
+        activ = self.net.activation_funct.eq(activSum)
+        new_activation.append(activ)
+        dactiv = self.net.activation_funct.derivativeeq(activSum)*activDerivSum
+        new_activation_derivatives.append(dactiv)
+        layerindex+=1
+      activation+=[new_activation]
+      activation_derivatives+=[new_activation_derivatives]
+      layer+=1
+    ending_derivatives=activation_derivatives[-1]
+    ending_values=activation[-1]
+    return sum([2*(e_val-expected)*e_deriv for e_val,e_deriv,expected in zip(ending_values, ending_derivatives, self.data[todaysTrainingData])])
+  def basicTrain(self,learningRate,repetitions):
+    shuffleLookup=[i for i in range(len(self.data))]
+    print(self.net.w)
+    for i in range(repetitions):
+      idx=i%len(self.data)
+      random.shuffle(shuffleLookup)
+      for wlayer,wlayerContents in enumerate(self.net.w):
+        for wneuron,wneuronContents in enumerate(wlayerContents):
+          for wconnections,wconnectionContents in enumerate(wneuronContents):
+            self.net.w[wlayer][wneuron][wconnections]-=learningRate*self.getDerivativeForCoordinate_WEIGHT(idx,wlayer,wneuron,wconnections)
+      if not i%(repetitions//60+1):
+        print(f"Loss overall: {self.getOverallFitness()}".ljust(50)+f"Loss on this item: {self.getFitness(idx)}".ljust(50)+('#'*(60*i//repetitions)).ljust(60)+' '+str(int(100*i/repetitions))+'% done')
+    print(self.net.w)
+
     
 
-coolNet = Network(3,[3,5,4],2,randominit,randominit)
+coolNet = Network(3,[3],2,randominit,randominit,sigmoidFunct)
 print(coolNet.evaluate([0,0,0]))
 print(coolNet.evaluate([0,1,0])) # trainingdata[0]
 
 coolTrain = basicTrainer(coolNet,training_data)
 print(coolTrain.getFitness(0))
 print(coolTrain.getOverallFitness())
-print(coolTrain.getDerivativeForCoordinate_BIAS(0,0,0,0))
+print(coolTrain.getDerivativeForCoordinate_WEIGHT(0,0,0,0))
+print(coolTrain.getDerivativeForCoordinate_BIAS(0,0,0))
+print(coolTrain.basicTrain(0.2,1000))
