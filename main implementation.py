@@ -156,16 +156,12 @@ class basicTrainer:
     outs=self.net.evaluate(ins)
     return sum([(tdats-outss)**2 for tdats,outss in zip(self.data[ins],outs)])
   def getOverallFitness(self):
-    summer=0
-    for idx in range(len(self.data)):
-      summer+=self.getFitness(idx)
-    summer/=len(self.data)
-    return summer
+    return sum([self.getFitness(idx) for idx in range(len(self.data))])/len(self.data)
   def getDerivativeForCoordinate_WEIGHT(self,idx,layer_coordinate,lindex,lindex_in_coordinate):
     todaysTrainingData=self.getTrainingData(idx)
     activation=[todaysTrainingData]
     activation_derivatives=[[0 for _ in self.getTrainingData(idx)]]
-    layer=-1
+    layer=0
     for biases, weights in zip(self.net.b, self.net.w):
       new_activation=[]
       new_activation_derivatives=[]
@@ -194,11 +190,11 @@ class basicTrainer:
     todaysTrainingData=self.getTrainingData(idx)
     activation=[todaysTrainingData]
     activation_derivatives=[[0 for _ in self.getTrainingData(idx)]]
-    layer=-1
+    layer=0
     for biases, weights in zip(self.net.b, self.net.w):
       new_activation=[]
       new_activation_derivatives=[]
-      layerindex=0
+      layerindex=-1
       for bias, weightgroup in zip(biases,weights):
         activSum = bias
         activDerivSum = layer==layer_coordinate and lindex==layerindex
@@ -221,16 +217,19 @@ class basicTrainer:
   def basicTrain(self,learningRate,repetitions):
     shuffleLookup=[i for i in range(len(self.data))]
     print(self.net.w)
+    print(self.net.b)
     for i in range(repetitions):
       idx=i%len(self.data)
       random.shuffle(shuffleLookup)
       for wlayer,wlayerContents in enumerate(self.net.w):
         for wneuron,wneuronContents in enumerate(wlayerContents):
+          self.net.b[wlayer][wneuron]-=learningRate*self.getDerivativeForCoordinate_BIAS(idx,wlayer,wneuron)
           for wconnections,wconnectionContents in enumerate(wneuronContents):
             self.net.w[wlayer][wneuron][wconnections]-=learningRate*self.getDerivativeForCoordinate_WEIGHT(idx,wlayer,wneuron,wconnections)
       if not i%(repetitions//60+1):
         print(f"Loss overall: {self.getOverallFitness()}".ljust(50)+f"Loss on this item: {self.getFitness(idx)}".ljust(50)+('#'*(60*i//repetitions)).ljust(60)+' '+str(int(100*i/repetitions))+'% done')
     print(self.net.w)
+    print(self.net.b)
 
     
 
