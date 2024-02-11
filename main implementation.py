@@ -246,3 +246,4 @@ print(coolTrain.getOverallFitness())
 print(coolTrain.getDerivativeForCoordinate_WEIGHT(0,0,0,0))
 print(coolTrain.getDerivativeForCoordinate_BIAS(0,0,0))
 print(coolTrain.basicTrain(0.2,1000))
+#end of file
