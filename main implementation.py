@@ -136,10 +136,13 @@ class Network:
       "weights":self.w
     }
   def evaluate(self,input_information):
+    print(self.b)
+    print(self.w)
     activation=input_information
     for biases, weights in zip(self.b, self.w):
       new_activation=[]
       for weightgroup,bias in zip(weights,biases):
+        print(weightgroup,bias)
         new_activation.append(self.activation_funct.eq(bias+sum([act*weight for weight,act in zip(weightgroup,activation)])))
       activation=new_activation
     return activation
