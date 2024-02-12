@@ -136,13 +136,10 @@ class Network:
       "weights":self.w
     }
   def evaluate(self,input_information):
-    print(self.b)
-    print(self.w)
     activation=input_information
     for biases, weights in zip(self.b, self.w):
       new_activation=[]
       for weightgroup,bias in zip(weights,biases):
-        print(weightgroup,bias)
         new_activation.append(self.activation_funct.eq(bias+sum([act*weight for weight,act in zip(weightgroup,activation)])))
       activation=new_activation
     return activation
@@ -165,10 +162,12 @@ class basicTrainer:
     activation=[todaysTrainingData]
     activation_derivatives=[[0 for _ in self.getTrainingData(idx)]]
     layer=0
+    # Cannot use the zip() function here; self.net.b should be offset one unit.
     for biases, weights in zip(self.net.b, self.net.w):
       new_activation=[]
       new_activation_derivatives=[]
       layerindex =0
+      # Probably a bad idea to use the zip() function here too.
       for bias, weightgroup in zip(biases,weights):
         activSum = bias
         activDerivSum = 0
@@ -194,10 +193,12 @@ class basicTrainer:
     activation=[todaysTrainingData]
     activation_derivatives=[[0 for _ in self.getTrainingData(idx)]]
     layer=0
+    # Cannot use the zip() function here; self.net.b should be offset one unit.
     for biases, weights in zip(self.net.b, self.net.w):
       new_activation=[]
       new_activation_derivatives=[]
       layerindex=-1
+      # Probably a bad idea to use the zip() function here too.
       for bias, weightgroup in zip(biases,weights):
         activSum = bias
         activDerivSum = layer==layer_coordinate and lindex==layerindex
@@ -231,8 +232,7 @@ class basicTrainer:
             self.net.w[wlayer][wneuron][wconnections]-=learningRate*self.getDerivativeForCoordinate_WEIGHT(idx,wlayer,wneuron,wconnections)
       if not i%(repetitions//60+1):
         print(f"Loss overall: {self.getOverallFitness()}".ljust(50)+f"Loss on this item: {self.getFitness(idx)}".ljust(50)+('#'*(60*i//repetitions)).ljust(60)+' '+str(int(100*i/repetitions))+'% done')
-    print(self.net.w)
-    print(self.net.b)
+    
 
     
 
@@ -240,10 +240,6 @@ coolNet = Network(3,[3],2,randominit,randominit,sigmoidFunct)
 print(coolNet.evaluate([0,0,0]))
 print(coolNet.evaluate([0,1,0])) # trainingdata[0]
 
-coolTrain = basicTrainer(coolNet,training_data)
-print(coolTrain.getFitness(0))
-print(coolTrain.getOverallFitness())
-print(coolTrain.getDerivativeForCoordinate_WEIGHT(0,0,0,0))
-print(coolTrain.getDerivativeForCoordinate_BIAS(0,0,0))
-print(coolTrain.basicTrain(0.2,1000))
+print(coolNet.w)
+print(coolNet.b)
 #end of file
