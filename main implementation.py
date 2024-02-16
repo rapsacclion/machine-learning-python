@@ -135,13 +135,24 @@ class Network:
       "biases":self.b,
       "weights":self.w
     }
-  def evaluate(self,input_information):
+  def evaluate(self,input_information,verbose=False):
     activation=input_information
-    for biases, weights in zip(self.b, self.w):
-      new_activation=[]
-      for weightgroup,bias in zip(weights,biases):
-        new_activation.append(self.activation_funct.eq(bias+sum([act*weight for weight,act in zip(weightgroup,activation)])))
-      activation=new_activation
+    for idx, layer in enumerate(self.activations[:-1]):
+      newactivation=[]
+      for b,w in zip(self.b[idx],self.w[idx]): # THIS ZIP IS OKAY BECAUSE activation AND self.b[idx] MUST HAVE THE SAME LENGTH.
+        if verbose: #debugging purposes
+          print(self.w)
+          print(activation)
+          print(w)
+          print([a*individual_weight for a,individual_weight in zip(activation,w)])
+          print(sum([a*individual_weight for a,individual_weight in zip(activation,w)]))
+          print(sum([a*individual_weight for a,individual_weight in zip(activation,w)])+b)
+          print(self.activation_funct.eq(sum([a*individual_weight for a,individual_weight in zip(activation,w)])+b))
+          print()
+        newactivationval = sum([a*individual_weight for a,individual_weight in zip(activation,w)])
+        newactivationval+=b
+        newactivation.append(self.activation_funct.eq(newactivationval))
+      activation = newactivation
     return activation
 
 
@@ -162,12 +173,10 @@ class basicTrainer:
     activation=[todaysTrainingData]
     activation_derivatives=[[0 for _ in self.getTrainingData(idx)]]
     layer=0
-    # Cannot use the zip() function here; self.net.b should be offset one unit.
     for biases, weights in zip(self.net.b, self.net.w):
       new_activation=[]
       new_activation_derivatives=[]
       layerindex =0
-      # Probably a bad idea to use the zip() function here too.
       for bias, weightgroup in zip(biases,weights):
         activSum = bias
         activDerivSum = 0
@@ -199,7 +208,7 @@ class basicTrainer:
       new_activation_derivatives=[]
       layerindex=-1
       # Probably a bad idea to use the zip() function here too.
-      for bias, weightgroup in zip(biases,weights):
+      for bias, weightgroup in zip([0]+biases,weights):
         activSum = bias
         activDerivSum = layer==layer_coordinate and lindex==layerindex
         i=0
@@ -228,8 +237,8 @@ class basicTrainer:
       for wlayer,wlayerContents in enumerate(self.net.w):
         for wneuron,wneuronContents in enumerate(wlayerContents):
           self.net.b[wlayer][wneuron]-=learningRate*self.getDerivativeForCoordinate_BIAS(idx,wlayer,wneuron)
-          for wconnections,wconnectionContents in enumerate(wneuronContents):
-            self.net.w[wlayer][wneuron][wconnections]-=learningRate*self.getDerivativeForCoordinate_WEIGHT(idx,wlayer,wneuron,wconnections)
+          #for wconnections,_ in enumerate(wneuronContents):
+            #self.net.w[wlayer][wneuron][wconnections]-=learningRate*self.getDerivativeForCoordinate_WEIGHT(idx,wlayer,wneuron,wconnections)
       if not i%(repetitions//60+1):
         print(f"Loss overall: {self.getOverallFitness()}".ljust(50)+f"Loss on this item: {self.getFitness(idx)}".ljust(50)+('#'*(60*i//repetitions)).ljust(60)+' '+str(int(100*i/repetitions))+'% done')
     
@@ -240,6 +249,9 @@ coolNet = Network(3,[3],2,randominit,randominit,sigmoidFunct)
 print(coolNet.evaluate([0,0,0]))
 print(coolNet.evaluate([0,1,0])) # trainingdata[0]
 
-print(coolNet.w)
-print(coolNet.b)
+input()
+coolTrain=basicTrainer(coolNet, training_data)
+
+coolTrain.basicTrain(0.01,1000)
+
 #end of file
