@@ -108,27 +108,6 @@ sigmoidFunct = activFunct(sigmoid, inversesigmoid, sigmoidderivative, [0, 1])
 tanFunct = activFunct(math.atan, math.tan,
                       tangentderivative, [-math.pi/2, math.pi/2])
 
-#
-#
-# /$$$$$$$   /$$$$$$        /$$   /$$  /$$$$$$  /$$$$$$$$        /$$$$$$  /$$   /$$ /$$   /$$ /$$$$$$$$        /$$$$$$  /$$$$$$$$ /$$$$$$$$        /$$$$$$  /$$$$$$$         /$$$$$$  /$$        /$$$$$$   /$$$$$$  /$$$$$$$$
-# | $$__  $$ /$$__  $$      | $$$ | $$ /$$__  $$|__  $$__/       /$$__  $$| $$  | $$| $$  | $$|__  $$__/       /$$__  $$| $$_____/| $$_____/       /$$__  $$| $$__  $$       /$$__  $$| $$       /$$__  $$ /$$__  $$| $$_____/
-# | $$  \ $$| $$  \ $$      | $$$$| $$| $$  \ $$   | $$         | $$  \__/| $$  | $$| $$  | $$   | $$         | $$  \ $$| $$      | $$            | $$  \ $$| $$  \ $$      | $$  \__/| $$      | $$  \ $$| $$  \__/| $$
-# | $$  | $$| $$  | $$      | $$ $$ $$| $$  | $$   | $$         |  $$$$$$ | $$$$$$$$| $$  | $$   | $$         | $$  | $$| $$$$$   | $$$$$         | $$  | $$| $$$$$$$/      | $$      | $$      | $$  | $$|  $$$$$$ | $$$$$
-# | $$  | $$| $$  | $$      | $$  $$$$| $$  | $$   | $$          \____  $$| $$__  $$| $$  | $$   | $$         | $$  | $$| $$__/   | $$__/         | $$  | $$| $$__  $$      | $$      | $$      | $$  | $$ \____  $$| $$__/
-# | $$  | $$| $$  | $$      | $$\  $$$| $$  | $$   | $$          /$$  \ $$| $$  | $$| $$  | $$   | $$         | $$  | $$| $$      | $$            | $$  | $$| $$  \ $$      | $$    $$| $$      | $$  | $$ /$$  \ $$| $$
-# | $$$$$$$/|  $$$$$$/      | $$ \  $$|  $$$$$$/   | $$         |  $$$$$$/| $$  | $$|  $$$$$$/   | $$         |  $$$$$$/| $$      | $$            |  $$$$$$/| $$  | $$      |  $$$$$$/| $$$$$$$$|  $$$$$$/|  $$$$$$/| $$$$$$$$
-# |_______/  \______/       |__/  \__/ \______/    |__/          \______/ |__/  |__/ \______/    |__/          \______/ |__/      |__/             \______/ |__/  |__/       \______/ |________/ \______/  \______/ |________/
-
-
-#                                              I am running important AI training python program. Please do not shut off or close this computer!!!
-#                                                          And do not use it for anything either! I need the CPU to be focused on tensorflow keras algorithm training!
-#
-#
-#
-#
-#
-#
-
 class Network:
     def __init__(self, inputlayersize: int, layersarchitecture: list, outputlayersize: int, default_eq_bias=ones, default_eq_weight=zeroes, activation_funct=sigmoidFunct):
         self.arch = layersarchitecture
@@ -271,7 +250,7 @@ class basicTrainer:
         return sum([2*(e_val-expected)*e_deriv for e_val, e_deriv, expected in zip(ending_values, ending_derivatives, self.data[todaysTrainingData])])
 
     def basicTrain(self, learningRate, repetitions):
-        shuffleLookup = [i for i in range(len(self.data))]
+        shuffleLookup = [*range(len(self.data))]
         print(self.net.w)
         print(self.net.b)
         for i in range(repetitions):
