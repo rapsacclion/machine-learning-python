@@ -100,3 +100,5 @@ def tangentderivative(a):
 sigmoidFunct = activFunct(sigmoid, inversesigmoid, sigmoidderivative, [0, 1])
 tanFunct = activFunct(math.atan, math.tan,
                       tangentderivative, [-math.pi/2, math.pi/2])
+
+
