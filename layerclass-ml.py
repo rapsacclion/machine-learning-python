@@ -102,3 +102,55 @@ tanFunct = activFunct(math.atan, math.tan,
                       tangentderivative, [-math.pi/2, math.pi/2])
 
 
+class ActivationEquation:
+    def __init__(self, function, inverse, derivative, derivative_inverse):
+        self.funct = function
+        self.invs = inverse
+        self.deriv = derivative
+        self.invderiv = derivative_inverse
+
+
+class Layer:
+    def __init__(self, size, previous_layersize, activation_eq: ActivationEquation, bias_fill=zeroes, weight_fill=zeroes):
+        self.size = size
+        self.psize = previous_layersize
+        self.acteq = activation_eq
+        self.weights = [[bias_fill(a, b) for a in range(self.psize)]
+                        for b in range(self.size)]
+        self.biases = [weight_fill(a) for a in range(self.size)]
+
+    def eval(self, previous_layeractivation):
+        return [
+            self.acteq.funct(
+                self.weights[a]
+                + sum([
+                    self.biases[b]*previous_layeractivation[b]
+                    for b in range(self.psize)
+                ])
+            )
+            for a in range(self.size)
+        ]
+
+    def eval_weight_derivative(self, previous_layeractivation, index):
+        return [
+            self.acteq.funct(
+                self.weights[a]
+                + sum([
+                    self.biases[b]*previous_layeractivation[b]
+                    for b in range(self.psize)
+                ])
+            )
+            for a in range(self.size)
+        ]
+
+    def eval_bias_derivative(self, previous_layeractivation, index, p_layer_index):
+        return [
+            self.acteq.funct(
+                self.weights[a]
+                + sum([
+                    self.biases[b]*previous_layeractivation[b]
+                    for b in range(self.psize)
+                ])
+            )
+            for a in range(self.size)
+        ]
