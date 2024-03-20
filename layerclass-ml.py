@@ -72,14 +72,6 @@ def randominit(*_):
     return random.randint(0, 100)/100
 
 
-class activFunct:
-    def __init__(self, eq, inveq, derivativeeq, eq_range):
-        self.eq = eq
-        self.inveq = inveq
-        self.derivativeeq = derivativeeq
-        self.eq_range = eq_range
-
-
 def sigmoid(a):
     return 1/(1+math.pow(2, -a))
 
@@ -97,60 +89,125 @@ def tangentderivative(a):
     return 1/(1+a*a)
 
 
-sigmoidFunct = activFunct(sigmoid, inversesigmoid, sigmoidderivative, [0, 1])
-tanFunct = activFunct(math.atan, math.tan,
-                      tangentderivative, [-math.pi/2, math.pi/2])
 
 
 class ActivationEquation:
-    def __init__(self, function, inverse, derivative, derivative_inverse):
+    def __init__(self, function, inverse, derivative, derivative_inverse, bounds=[0,0]):
         self.funct = function
         self.invs = inverse
         self.deriv = derivative
         self.invderiv = derivative_inverse
 
+sigmoidFunct = ActivationEquation(sigmoid, inversesigmoid, sigmoidderivative, zeroes, [0, 1])
+tanFunct = ActivationEquation(math.atan, math.tan,
+                      tangentderivative, zeroes, [-math.pi/2, math.pi/2])
 
 class Layer:
-    def __init__(self, size, previous_layersize, activation_eq: ActivationEquation, bias_fill=zeroes, weight_fill=zeroes):
+    def __init__(self, previous_layersize, size, activation_eq: ActivationEquation, bias_fill=zeroes, weight_fill=zeroes):
         self.size = size
         self.psize = previous_layersize
         self.acteq = activation_eq
         self.weights = [[bias_fill(a, b) for a in range(self.psize)]
                         for b in range(self.size)]
         self.biases = [weight_fill(a) for a in range(self.size)]
+    
+    def getDescription(self):
+        return f"Your regular, plain backpropogation-friendly neural network layer with dimensions {self.psize}->{self.size}"
+    
+    def getType(self):
+        return "Generic neural network layer"
 
     def eval(self, previous_layeractivation):
         return [
             self.acteq.funct(
-                self.weights[a]
+                self.biases[a]
                 + sum([
-                    self.biases[b]*previous_layeractivation[b]
+                    self.weights[a][b]*previous_layeractivation[b]
                     for b in range(self.psize)
                 ])
             )
             for a in range(self.size)
         ]
 
-    def eval_weight_derivative(self, previous_layeractivation, index):
+    def eval_weight_derivative(self, previous_layeractivation, previous_layeractivation_derivatives, index, p_layer_index, layer_status):
         return [
             self.acteq.funct(
-                self.weights[a]
+                self.biases[a]
                 + sum([
-                    self.biases[b]*previous_layeractivation[b]
+                    self.weights[a][b]*previous_layeractivation[b]
                     for b in range(self.psize)
                 ])
+            )
+            * (
+                sum([
+                    (a == index and b == p_layer_index and layer_status[0]==layer_status[1]) *
+                    previous_layeractivation[b]
+                    + self.weights[a][b]*previous_layeractivation_derivatives[b]
+                    for b in range(self.psize)
+                ])
+                + 0
             )
             for a in range(self.size)
         ]
 
-    def eval_bias_derivative(self, previous_layeractivation, index, p_layer_index):
+    def eval_bias_derivative(self, previous_layeractivation, previous_layeractivation_derivatives, index, layer_status):
         return [
             self.acteq.funct(
-                self.weights[a]
+                self.biases[a]
                 + sum([
-                    self.biases[b]*previous_layeractivation[b]
+                    self.weights[a][b]*previous_layeractivation[b]
                     for b in range(self.psize)
                 ])
             )
+            * (
+                sum([
+                    self.weights[a][b]*previous_layeractivation_derivatives[b]
+                    for b in range(self.size)
+                ])
+                + (index == a and layer_status[0]==layer_status[1])
+            )
             for a in range(self.size)
         ]
+
+    def eval_inverse():
+        pass # figure out later
+
+
+class BasicNetwork:
+    def __init__(self, makeup, activation_function=sigmoidFunct):
+        self.layers=[]
+        for item in makeup:
+            self.layers.append(item[0](*(item[1:]),activation_function))
+    
+    def getType(self):
+        return "Basic layered neural network"
+
+    def printContents(self):
+        message=self.getType()+'\n'
+        for i in self.layers:
+            message+="  "+i.getType()+'\n'
+            message+="    "+i.getDescription()+'\n'
+        print(message)
+
+    def eval(self,input_values):
+        current_activation=input_values
+        for layer in self.layers:
+            current_activation = layer.eval(current_activation)
+        return current_activation
+    def eval_weight_derivative(self,input_values,layerindex,index,playerindex):
+        current_activation=input_values
+        current_activation_derivatives=[0 for _ in current_activation]
+
+        clayerindex=0
+        for layer in self.layers:
+            current_activation = layer.eval(current_activation)
+            current_activation_derivatives=layer.eval_weight_derivative(current_activation,current_activation_derivatives,index,playerindex,[clayerindex,layerindex])
+            clayerindex+=1
+        return current_activation_derivatives
+
+
+
+net = BasicNetwork([(Layer,3,4),(Layer,4,3),(Layer,3,2)])
+net.printContents()
+print(net.eval([3,2,1]))
+print(net.eval_weight_derivative([3,2,1],0,0,0))
