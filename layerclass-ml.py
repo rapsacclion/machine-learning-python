@@ -129,7 +129,7 @@ class Layer:
 
     def eval_weight_derivative(self, previous_layeractivation, previous_layeractivation_derivatives, index, p_layer_index, layer_status):
         return [
-            self.acteq.funct(
+            self.acteq.deriv(
                 self.biases[a]
                 + sum([
                     self.weights[a][b]*previous_layeractivation[b]
@@ -150,7 +150,7 @@ class Layer:
 
     def eval_bias_derivative(self, previous_layeractivation, previous_layeractivation_derivatives, index, layer_status):
         return [
-            self.acteq.funct(
+            self.acteq.deriv(
                 self.biases[a]
                 + sum([
                     self.weights[a][b]*previous_layeractivation[b]
@@ -170,12 +170,15 @@ class Layer:
     def eval_inverse():
         pass # figure out later
 
+sigmoidFunct = ActivationEquation(sigmoid, inversesigmoid, sigmoidderivative, zeroes, [0, 1])
+tanFunct = ActivationEquation(math.atan, math.tan,
+                      tangentderivative, zeroes, [-math.pi/2, math.pi/2])
 
 class BasicNetwork:
-    def __init__(self, makeup, activation_function=sigmoidFunct):
+    def __init__(self, makeup, activation_function=sigmoidFunct, bias_fills=zeroes, weight_fills=ones):
         self.layers=[]
         for item in makeup:
-            self.layers.append(item[0](*(item[1:]),activation_function))
+            self.layers.append(item[0](*(item[1:]),activation_function, bias_fill=bias_fills, weight_fill=weight_fills))
     
     def getType(self):
         return "Basic layered neural network"
@@ -213,9 +216,40 @@ class BasicNetwork:
             clayerindex+=1
         return (current_activation_derivatives,current_activation)
 
+def train_network_basic(network, data_in, data_out):
+    layernum=0
+    for layer in network.layers:
+        layernum+=1
+        bias_index=0
+        for _ in layer.biases:
+            derivs,activs=network.eval_net_bias_derivative(data_in,layernum,bias_index)
+            #loss = sum([(a-b)**2 for a,b in zip(activs,data_out)])
+            loss_deriv = sum([(a-b)*2*c for a,b,c in zip(activs,data_out,derivs)])
+            #print(derivs,activs,loss,loss_deriv)
+            layer.biases[bias_index]-=0.1*loss_deriv
+            bias_index+=1
+        weight_index=0
+        for weightsection in layer.weights:
+            weight_innerindex=0
+            for _ in weightsection:
+                derivs,activs=network.eval_net_weight_derivative(data_in,layernum,weight_index,weight_innerindex)
+                #loss = sum([(a-b)**2 for a,b in zip(activs,data_out)])
+                loss_deriv = sum([(a-b)*2*c for a,b,c in zip(activs,data_out,derivs)])
+                #print(derivs,activs,loss,loss_deriv)
+                layer.weights[weight_index][weight_innerindex]-=0.1*loss_deriv
+                weight_innerindex+=1
+            weight_index+=1
 
-sigmoidFunct = ActivationEquation(sigmoid, inversesigmoid, sigmoidderivative, zeroes, [0, 1])
-tanFunct = ActivationEquation(math.atan, math.tan,
-                      tangentderivative, zeroes, [-math.pi/2, math.pi/2])
+def get_network_loss(network,data_in,data_out):
+    return sum([(a-b)**2 for a,b in zip(network.eval(data_in),data_out)])
 
-net = BasicNetwork([(Layer,3,4),(Layer,4,3),(Layer,3,2)])
+net = BasicNetwork([(Layer,3,4),(Layer,4,3),(Layer,3,2)], bias_fills=randominit, weight_fills=randominit)
+print(net.eval([1,1,1]))
+print(net.eval_net_bias_derivative([1,1,1],0,0))
+print(net.eval_net_weight_derivative([1,1,1],0,0,0))
+
+print("\nStart Training\n\n")
+for k in range(5000):
+    train_network_basic(net,[1,1,1],[0.5,1])
+    print("New loss:"+str(get_network_loss(net,[1,1,1],[0.5,1])).ljust(30)+str(net.eval([1,1,1])))
+    #print([(l.biases,l.weights) for l in net.layers])
