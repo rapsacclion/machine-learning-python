@@ -97,13 +97,11 @@ class ActivationEquation:
         self.invs = inverse
         self.deriv = derivative
         self.invderiv = derivative_inverse
+        self.bounds=bounds
 
-sigmoidFunct = ActivationEquation(sigmoid, inversesigmoid, sigmoidderivative, zeroes, [0, 1])
-tanFunct = ActivationEquation(math.atan, math.tan,
-                      tangentderivative, zeroes, [-math.pi/2, math.pi/2])
 
 class Layer:
-    def __init__(self, previous_layersize, size, activation_eq: ActivationEquation, bias_fill=zeroes, weight_fill=zeroes):
+    def __init__(self, previous_layersize, size, activation_eq: ActivationEquation, bias_fill=zeroes, weight_fill=ones):
         self.size = size
         self.psize = previous_layersize
         self.acteq = activation_eq
@@ -162,9 +160,9 @@ class Layer:
             * (
                 sum([
                     self.weights[a][b]*previous_layeractivation_derivatives[b]
-                    for b in range(self.size)
+                    for b in range(self.psize)
                 ])
-                + (index == a and layer_status[0]==layer_status[1])
+                + (a == index and layer_status[0]==layer_status[1])
             )
             for a in range(self.size)
         ]
@@ -194,20 +192,30 @@ class BasicNetwork:
         for layer in self.layers:
             current_activation = layer.eval(current_activation)
         return current_activation
-    def eval_weight_derivative(self,input_values,layerindex,index,playerindex):
+    def eval_net_weight_derivative(self,input_values,layerindex,index,playerindex):
         current_activation=input_values
         current_activation_derivatives=[0 for _ in current_activation]
 
         clayerindex=0
         for layer in self.layers:
-            current_activation = layer.eval(current_activation)
             current_activation_derivatives=layer.eval_weight_derivative(current_activation,current_activation_derivatives,index,playerindex,[clayerindex,layerindex])
+            current_activation = layer.eval(current_activation)
             clayerindex+=1
-        return current_activation_derivatives
+        return (current_activation_derivatives,current_activation)
+    def eval_net_bias_derivative(self,input_values,layerindex,index):
+        current_activation=input_values
+        current_activation_derivatives=[0 for _ in current_activation]
+
+        clayerindex=0
+        for layer in self.layers:
+            current_activation_derivatives=layer.eval_bias_derivative(current_activation,current_activation_derivatives,index,[clayerindex,layerindex])
+            current_activation = layer.eval(current_activation)
+            clayerindex+=1
+        return (current_activation_derivatives,current_activation)
 
 
+sigmoidFunct = ActivationEquation(sigmoid, inversesigmoid, sigmoidderivative, zeroes, [0, 1])
+tanFunct = ActivationEquation(math.atan, math.tan,
+                      tangentderivative, zeroes, [-math.pi/2, math.pi/2])
 
 net = BasicNetwork([(Layer,3,4),(Layer,4,3),(Layer,3,2)])
-net.printContents()
-print(net.eval([3,2,1]))
-print(net.eval_weight_derivative([3,2,1],0,0,0))
