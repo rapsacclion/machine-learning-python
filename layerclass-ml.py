@@ -10,13 +10,13 @@ training_data = {
     (1, 0, 0): [1, 0],
     (0, 0, 1): [0, 1]
 }
-
-for i in range(1000):
-    for t in range(1000):
-        ins = (i/500-1, 0, t/500-1)
-        outs = [i/500-1, t/500-1]
+'''
+for i in range(100):
+    for t in range(100):
+        ins = (i/50-1, 0, t/50-1)
+        outs = [i/50-1, t/50-1]
         training_data[ins] = outs
-
+'''
 
 def rec_gen(s, eq, pos=[], nv=None):
     pc = pos[:]
@@ -231,7 +231,7 @@ class BasicNetwork:
         return ostring
 
 def train_network_basic(network, data_in, data_out):
-    scaler=0.1
+    scaler=0.01
     layernum=0
     for layer in network.layers:
         layernum+=1
@@ -267,12 +267,14 @@ print(net.eval_net_weight_derivative([1,1,1],0,0,0))
 in_options=list(training_data.keys())
 
 print("\nStart Training\n\n")
-for k in range(5000):
+totalloss=100
+while totalloss>0.01:
     datachoice=random.choice(in_options)
     datachoice_out=training_data[datachoice]
-    print("Old loss:"+str(get_network_loss(net,datachoice,datachoice_out)).ljust(30)+str(net.eval([1,1,1]))+net.data_summarize()[0:25])
     train_network_basic(net,datachoice,datachoice_out)
-    print("New loss:"+str(get_network_loss(net,datachoice,datachoice_out)).ljust(30)+str(net.eval([1,1,1]))+net.data_summarize()[0:25])
+    
+    print("loss:"+str(totalloss).ljust(30)+str(net.eval([1,1,1]))+str(net.eval([0,1,0])))
+    totalloss=sum([get_network_loss(net,d,training_data[d]) for d in in_options[0:len(in_options)//2]])/len(in_options)
     #print([(l.biases,l.weights) for l in net.layers])
 
 while True:
